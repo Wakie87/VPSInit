@@ -1,7 +1,8 @@
 #!/bin/bash
 #=================================================================================#
-#        Wakie VPS Init (CentOS 8)                                                #
-#        Copyright (C) 2013-2020 scott@npclinics.com.au                           #
+#        Wakie VPS Init (CentOS 8)						  #	
+#        Copyright (C) 2013-2020 admin@magenx.com	                          #
+#        Copyright (C) 2020 scott@npclinics.com.au                                #
 #        All rights reserved.                                                     #
 #=================================================================================#
 SELF=$(basename $0)
@@ -393,3 +394,9 @@ echo
     exit 1
   fi
 fi
+===========================  INSTALLATION LOG  ======================================" | tee ${MAGENX_CONFIG_PATH}/install.log
+echo
+echo
+GREENTXT "SERVER IS READY. THANK YOU"
+echo "PS1='\[\e[37m\][\[\e[m\]\[\e[32m\]\u\[\e[m\]\[\e[37m\]@\[\e[m\]\[\e[35m\]\h\[\e[m\]\[\e[37m\]:\[\e[m\]\[\e[36m\]\W\[\e[m\]\[\e[37m\]]\[\e[m\]$ '" >> /etc/bashrc
+echo
