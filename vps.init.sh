@@ -1,15 +1,14 @@
 #!/bin/bash
 #=================================================================================#
-#        MagenX e-commerce stack for Magento 2                                    #
-#        Copyright (C) 2013-2020 admin@magenx.com                                 #
+#        Wakie VPS Init (CentOS 8)                                                #
+#        Copyright (C) 2013-2020 scott@npclinics.com.au                           #
 #        All rights reserved.                                                     #
 #=================================================================================#
 SELF=$(basename $0)
-MAGENX_VER="2.8.240.1"
-MAGENX_BASE="https://magenx.sh"
+WAKIE_VER="1"
 
 # Config path
-MAGENX_CONFIG_PATH="/opt/magenx/config"
+WAKIE_CONFIG_PATH="/opt/wakie/config"
 
 ###################################################################################
 ###                            DEFINE LINKS AND PACKAGES                        ###
@@ -18,34 +17,6 @@ MAGENX_CONFIG_PATH="/opt/magenx/config"
 # CentOS version lock
 CENTOS_VERSION="8"
 
-# ELK version lock
-ELKREPO="7.x"
-
-# Magento
-MAGE_VERSION="2"
-MAGE_VERSION_FULL=$(curl -s https://api.github.com/repos/magento/magento${MAGE_VERSION}/tags 2>&1 | head -3 | grep -oP '(?<=")\d.*(?=")')
-REPO_MAGE="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition"
-COMPOSER_VERSION="1.10.16"
-
-# Repositories
-REPO_PERCONA="https://repo.percona.com/yum/percona-release-latest.noarch.rpm"
-REPO_REMI="http://rpms.famillecollet.com/enterprise/remi-release-${CENTOS_VERSION}.rpm"
-
-# WebStack Packages
-EXTRA_PACKAGES="autoconf automake dejavu-fonts-common dejavu-sans-fonts libtidy libpcap gettext-devel recode gflags tbb ed lz4 libyaml libdwarf bind-utils e2fsprogs svn screen gcc iptraf inotify-tools iptables smartmontools net-tools mlocate unzip vim wget curl sudo bc mailx clamav-filesystem clamav-server clamav-update clamav-milter-systemd clamav-data clamav-server-systemd clamav-scanner-systemd clamav clamav-milter clamav-lib logrotate git patch ipset strace rsyslog ncurses-devel GeoIP GeoIP-devel geoipupdate openssl-devel ImageMagick libjpeg-turbo-utils pngcrush jpegoptim moreutils lsof net-snmp net-snmp-utils xinetd python3-virtualenv python3-wheel-wheel python3-pip python3-devel ncftp postfix augeas-libs libffi-devel mod_ssl dnf-automatic sysstat libuuid-devel uuid-devel attr iotop expect unixODBC gcc-c++"
-PHP_PACKAGES=(cli common fpm opcache gd curl mbstring bcmath soap mcrypt mysqlnd pdo xml xmlrpc intl gmp gettext-gettext phpseclib recode symfony-class-loader symfony-common tcpdf tcpdf-dejavu-sans-fonts tidy snappy lz4) 
-PHP_PECL_PACKAGES=(pecl-redis pecl-lzf pecl-geoip pecl-zip pecl-memcache pecl-oauth)
-PERL_MODULES=(LWP-Protocol-https Config-IniFiles libwww-perl CPAN Template-Toolkit Time-HiRes ExtUtils-CBuilder ExtUtils-Embed ExtUtils-MakeMaker TermReadKey DBI DBD-MySQL Digest-HMAC Digest-SHA1 Test-Simple Moose Net-SSLeay devel)
-
-# Nginx extra configuration
-REPO_MAGENX_TMP="https://raw.githubusercontent.com/magenx/Magento-2-server-installation/master/"
-NGINX_VERSION=$(curl -s http://nginx.org/en/download.html | grep -oP '(?<=gz">nginx-).*?(?=</a>)' | head -1)
-NGINX_BASE="https://raw.githubusercontent.com/magenx/Magento-nginx-config/master/"
-GITHUB_REPO_API_URL="https://api.github.com/repos/magenx/Magento-nginx-config/contents/magento2"
-
-# Debug Tools
-MYSQL_TUNER="https://raw.githubusercontent.com/major/MySQLTuner-perl/master/mysqltuner.pl"
-MYSQL_TOP="https://raw.githubusercontent.com/magenx/Magento-mysql/master/mytop"
 
 ###################################################################################
 ###                                    COLORS                                   ###
@@ -137,36 +108,7 @@ _echo () {
   echo -en "  $@"
 }
 
-###################################################################################
-###                            ARROW KEYS UP/DOWN MENU                          ###
-###################################################################################
 
-updown_menu () {
-i=1;for items in $(echo $1); do item[$i]="${items}"; let i=$i+1; done
-i=1
-echo -e "\n---> Use up/down arrow keys then press Enter to select $2"
-while [ 0 ]; do
-  if [ "$i" -eq 0 ]; then i=1; fi
-  if [ ! "${item[$i]}" ]; then let i=i-1; fi
-  echo -en "\r                                 " 
-  echo -en "\r${item[$i]}"
-  read -sn 1 selector
-  case "${selector}" in
-    "B") let i=i+1;;
-    "A") let i=i-1;;
-    "") echo; read -sn 1 -p "To confirm [ ${item[$i]} ] press y or n for new selection" confirm
-      if [[ "${confirm}" =~ ^[Yy]$  ]]; then
-        printf -v "$2" '%s' "${item[$i]}"
-        break
-      else
-        echo
-        echo -e "\n---> Use up/down arrow keys then press Enter to select $2"
-      fi
-      ;;
-  esac
-done }
-
-clear
 ###################################################################################
 ###                              CHECK IF WE CAN RUN IT                         ###
 ###################################################################################
@@ -184,8 +126,8 @@ if [[ ${EUID} -ne 0 ]]; then
 fi
 
 # some selinux, sir?
-if [ ! -f "${MAGENX_CONFIG_PATH}/selinux" ]; then
-  mkdir -p ${MAGENX_CONFIG_PATH}
+if [ ! -f "${WAKIE_CONFIG_PATH}/selinux" ]; then
+  mkdir -p ${WAKIE_CONFIG_PATH}
   SELINUX=$(awk -F "=" '/^SELINUX=/ {print $2}' /etc/selinux/config)
     if [[ ! "${SELINUX}" =~ (disabled|permissive) ]]; then
     echo
@@ -198,14 +140,14 @@ if [ ! -f "${MAGENX_CONFIG_PATH}/selinux" ]; then
     read selinux_disable
     if [ "${selinux_disable}" == "y" ];then
       sed -i "s/SELINUX=${SELINUX}/SELINUX=disabled/" /etc/selinux/config
-      echo "disabled" > ${MAGENX_CONFIG_PATH}/selinux
+      echo "disabled" > ${WAKIE_CONFIG_PATH}/selinux
       reboot
     else
    echo
   GREENTXT "PASS: SELINUX IS ${SELINUX^^}"
-  echo "${SELINUX}" > ${MAGENX_CONFIG_PATH}/selinux
+  echo "${SELINUX}" > ${WAKIE_CONFIG_PATH}/selinux
   ## selinux
-  if grep -q "enforcing" ${MAGENX_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
+  if grep -q "enforcing" ${WAKIE_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
    ## selinux config
    setsebool -P httpd_can_network_connect true
    setsebool -P httpd_setrlimit true
@@ -233,35 +175,6 @@ if [[ ${RESULT} == up ]]; then
   exit 1
 fi
 
-# check if you need update
-    MD5_NEW=$(curl -sL ${MAGENX_BASE} > magenx.sh.new && md5sum magenx.sh.new | awk '{print $1}')
-        MD5=$(md5sum ${SELF} | awk '{print $1}')
-            if [[ "${MD5_NEW}" == "${MD5}" ]]; then
-            GREENTXT "PASS: INTEGRITY CHECK FOR '${SELF}' OK"
-            rm magenx.sh.new
-            elif [[ "${MD5_NEW}" != "${MD5}" ]]; then
-            echo
-            YELLOWTXT "INTEGRITY CHECK FOR '${SELF}'"
-            YELLOWTXT "DETECTED DIFFERENT MD5 CHECKSUM"
-            YELLOWTXT "REMOTE REPOSITORY FILE HAS SOME CHANGES"
-            REDTXT "IF YOU HAVE LOCAL CHANGES - SKIP UPDATES"
-            echo
-                _echo "[?] Would you like to update the file now?  [y/n][y]:"
-		read update_agree
-		if [ "${update_agree}" == "y" ];then
-		mv magenx.sh.new ${SELF}
-		echo
-                GREENTXT "THE FILE HAS BEEN UPGRADED, PLEASE RUN IT AGAIN"
-		echo
-                exit 1
-            else
-        echo
-        YELLOWTXT "NEW FILE SAVED TO magenx.sh.new"
-        echo
-  fi
-fi
-
-
 # do we have CentOS?
 if grep "CentOS.* ${CENTOS_VERSION}\." /etc/centos-release > /dev/null 2>&1; then
   GREENTXT "PASS: CENTOS RELEASE ${CENTOS_VERSION}"
@@ -285,19 +198,8 @@ if [ "${ARCH}" = "x86_64" ]; then
   exit 1
 fi
 
-# check if memory is enough
-TOTALMEM=$(awk '/MemTotal/ { print $2 }' /proc/meminfo)
-if [ "${TOTALMEM}" -gt "3000000" ]; then
-  GREENTXT "PASS: YOU HAVE ${TOTALMEM} Kb OF RAM"
-  else
-  echo
-  REDTXT "[!] YOU HAVE LESS THAN 3Gb OF RAM"
-  YELLOWTXT "[!] TO PROPERLY RUN COMPLETE STACK YOU NEED 4Gb+"
-  echo
-fi
-
-# check if webstack is clean
-if ! grep -q "webstack_is_clean" ${MAGENX_CONFIG_PATH}/webstack >/dev/null 2>&1 ; then
+# check if vps is clean
+if ! grep -q "webstack_is_clean" ${WAKIE_CONFIG_PATH}/webstack >/dev/null 2>&1 ; then
 installed_packages="$(rpm -qa --qf '%{name} ' 'mysqld?|firewalld|Percona*|maria*|php-?|nginx*|*ftp*|varnish*|certbot*|redis*|webmin')"
   if [ ! -z "$installed_packages" ]; then
   REDTXT  "[!] WEBSTACK PACKAGES ALREADY INSTALLED"
@@ -308,14 +210,14 @@ installed_packages="$(rpm -qa --qf '%{name} ' 'mysqld?|firewalld|Percona*|maria*
   echo
   exit 1
     else
-  mkdir -p ${MAGENX_CONFIG_PATH}
-  echo "webstack_is_clean" > ${MAGENX_CONFIG_PATH}/webstack
+  mkdir -p ${WAKIE_CONFIG_PATH}
+  echo "webstack_is_clean" > ${WAKIE_CONFIG_PATH}/webstack
   fi
 fi
 
 GREENTXT "PATH: ${PATH}"
 echo
-if ! grep -q "yes" ${MAGENX_CONFIG_PATH}/systest >/dev/null 2>&1 ; then
+if ! grep -q "yes" ${WAKIE_CONFIG_PATH}/systest >/dev/null 2>&1 ; then
 echo
 BLUEBG "~    QUICK SYSTEM TEST    ~"
 WHITETXT "-------------------------------------------------------------------------------------"
@@ -375,15 +277,15 @@ echo
   WHITETXT "[CPU Time]: ${CPU_COLOR}"
 
 echo
-mkdir -p ${MAGENX_CONFIG_PATH} && echo "yes" > ${MAGENX_CONFIG_PATH}/systest
+mkdir -p ${WAKIE_CONFIG_PATH} && echo "yes" > ${WAKIE_CONFIG_PATH}/systest
 echo
 pause "[] Press [Enter] key to proceed"
 echo
 fi
 echo
 # ssh test
-if ! grep -q "yes" ${MAGENX_CONFIG_PATH}/sshport >/dev/null 2>&1 ; then
-      touch ${MAGENX_CONFIG_PATH}/sshport
+if ! grep -q "yes" ${WAKIE_CONFIG_PATH}/sshport >/dev/null 2>&1 ; then
+      touch ${WAKIE_CONFIG_PATH}/sshport
       echo
       sed -i "s/.*LoginGraceTime.*/LoginGraceTime 30/" /etc/ssh/sshd_config
       sed -i "s/.*MaxAuthTries.*/MaxAuthTries 6/" /etc/ssh/sshd_config     
@@ -421,7 +323,7 @@ END
 	echo
         GREENTXT "[!] SSH MAIN PORT: ${SSH_PORT}"
 	echo
-	if grep -q "enforcing" ${MAGENX_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
+	if grep -q "enforcing" ${WAKIE_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
 	## selinux config
 	semanage port -a -t ssh_port_t -p tcp ${SSH_PORT}
 	semanage port -a -t ssh_port_t -p tcp ${SFTP_PORT}
@@ -440,9 +342,9 @@ if [ "${ssh_test}" == "y" ];then
         GREENTXT "[!] SSH MAIN PORT: ${SSH_PORT}"
 	GREENTXT "[!] SFTP+CHROOT PORT: ${SFTP_PORT}"
 	echo
-        echo "# yes" > ${MAGENX_CONFIG_PATH}/sshport
-	echo "SSH_PORT=${SSH_PORT}" >> ${MAGENX_CONFIG_PATH}/sshport
-	echo "SFTP_PORT=${SFTP_PORT}" >> ${MAGENX_CONFIG_PATH}/sshport
+        echo "# yes" > ${WAKIE_CONFIG_PATH}/sshport
+	echo "SSH_PORT=${SSH_PORT}" >> ${WAKIE_CONFIG_PATH}/sshport
+	echo "SFTP_PORT=${SFTP_PORT}" >> ${WAKIE_CONFIG_PATH}/sshport
 	echo
 	echo
 	pause "[] Press [Enter] key to proceed"
@@ -453,7 +355,7 @@ if [ "${ssh_test}" == "y" ];then
         systemctl restart sshd.service
         echo
         GREENTXT "SSH PORT HAS BEEN RESTORED  -  OK"
-	if grep -q "enforcing" ${MAGENX_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
+	if grep -q "enforcing" ${WAKIE_CONFIG_PATH}/selinux >/dev/null 2>&1 ; then
 	## selinux config
 	semanage port -d -p tcp ${SSH_PORT}
 	semanage port -d -p tcp ${SFTP_PORT}
@@ -467,7 +369,7 @@ echo
 ###                                  AGREEMENT                                  ###
 ###################################################################################
 echo
-if ! grep -q "yes" ${MAGENX_CONFIG_PATH}/terms >/dev/null 2>&1 ; then
+if ! grep -q "yes" ${WAKIE_CONFIG_PATH}/terms >/dev/null 2>&1 ; then
 printf "\033c"
 echo
   YELLOWTXT "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -484,7 +386,7 @@ echo
     _echo "[?] Do you agree to these terms ?  [y/n][y]:"
     read terms_agree
   if [ "${terms_agree}" == "y" ];then
-    echo "yes" > ${MAGENX_CONFIG_PATH}/terms
+    echo "yes" > ${WAKIE_CONFIG_PATH}/terms
           else
         REDTXT "Going out. EXIT"
         echo
